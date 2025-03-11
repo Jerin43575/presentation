@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Donation System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #fafafa;
+            background-image: url('illu.webp');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: #333;
+        }
+
+        header {
+            background-color: rgba(255, 51, 51, 0.85);
+            padding: 40px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            animation: headerSlideIn 1s ease-out;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            animation: textFadeIn 1.5s ease-in;
+        }
+
+        header p {
+            font-size: 1.2em;
+            animation: textFadeIn 2s ease-in;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 0 15px;
+        }
+
+        main {
+            display: flex;
+            justify-content: space-around;
+            padding: 50px;
+            flex-wrap: wrap;
+            gap: 20px;
+            animation: fadeInUp 1.5s ease-in-out;
+        }
+
+        .section {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            border-radius: 15px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUpDivs 1.5s forwards;
+        }
+
+        .section:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .clickable {
+            cursor: pointer;
+            font-size: 1.8em;
+            color: #ff3333;
+            transition: color 0.3s;
+        }
+
+        .clickable:hover {
+            color: #cc0000;
+        }
+
+        .sub-menu {
+            margin-top: 20px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sub-menu a {
+            text-decoration: none;
+            background-color: #ff3333;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 5px;
+            margin: 10px;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .sub-menu a:hover {
+            background-color: #cc0000;
+            transform: scale(1.05);
+        }
+
+        .show {
+            display: flex;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        /* Keyframe Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes headerSlideIn {
+            from {
+                transform: translateY(-100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes textFadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUpDivs {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .info-section {
+            text-align: center;
+            margin: 50px 0;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-section h2 {
+            color: #ff3333;
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .info-section p {
+            font-size: 1.2em;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        footer {
+            background-color: rgba(255, 51, 51, 0.85);
+            color: white;
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 50px;
+        }
+
+        footer .social-icons a {
+            text-decoration: none;
+            color: white;
+            margin: 0 15px;
+            font-size: 1.5em;
+            transition: transform 0.3s;
+        }
+
+        footer .social-icons a:hover {
+            transform: scale(1.2);
+        }
+
+        footer p {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        /* Media Queries for Responsive Design */
+        @media (max-width: 768px) {
+            main {
+                flex-direction: column;
+                padding: 20px;
+            }
+
+            .section {
+                width: 100%;
+                max-width: 100%;
+                margin-bottom: 20px;
+            }
+
+            header h1 {
+                font-size: 2em;
+            }
+
+            header p {
+                font-size: 1.1em;
+            }
+
+            .info-section h2 {
+                font-size: 1.8em;
+            }
+
+            .info-section p {
+                font-size: 1.1em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            header p {
+                font-size: 1em;
+            }
+
+            main {
+                padding: 10px;
+            }
+
+            .section {
+                padding: 20px;
+            }
+
+            .info-section h2 {
+                font-size: 1.5em;
+            }
+
+            .info-section p {
+                font-size: 1em;
+            }
+
+            footer {
+                padding: 20px;
+            }
+        }
+
+        .hospital-directory {
+            padding: 50px 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            margin: 30px 0;
+        }
+
+        .hospital-directory h2 {
+            text-align: center;
+            color: #ef0606;
+            margin-bottom: 30px;
+        }
+
+        .hospital-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .hospital-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .hospital-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .hospital-name {
+            font-size: 1.2em;
+            color: #ff3333;
+            margin-bottom: 10px;
+        }
+
+        .hospital-details {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            text-align: left;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .hospital-details.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .hospital-details p {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        .hospital-details strong {
+            color: #ff3333;
+            margin-right: 5px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hospital-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hospital-directory {
+                padding: 30px 0;
+            }
+
+            .hospital-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .directory-button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .directory-btn {
+            background-color: #ff3333;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .directory-btn:hover {
+            background-color: #cc0000;
+        }
+
+        .hospital-directory {
+            padding: 30px 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+
+        .hospital-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .hospital-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .hospital-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .hospital-name {
+            font-size: 1.2em;
+            color: #ff3333;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .directory-btn {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+
+            .hospital-grid {
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hospital-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Donate Blood, Save Life!</h1>
+            <p>Donate Blood And Inspire Others.</p>
+        </div>
+    </header>
+    
+    <main>
+        <div class="section" id="donor-section">
+            <h2 class="clickable" onclick="toggleSubMenu('donor')">Donor</h2>
+            <div class="sub-menu" id="donor-sub-menu">
+                <a href="Donor\login\donor_login.html" class="button">Login</a>
+                <a href="Donor\register\DonorRegister.html" class="button">Register</a>
+            </div>
+        </div>
+
+        <div class="section" id="hospital-section">
+            <h2 class="clickable" onclick="toggleSubMenu('hospital')">Hospital</h2>
+            <div class="sub-menu" id="hospital-sub-menu">
+                <a href="Hospital\hoslogin.html" class="button">Login</a>
+                <a href="Hospital\HOspital_Register.html" class="button">Register</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add this button after the main section -->
+    <div class="directory-button-container">
+        <button id="showDirectoryBtn" class="directory-btn">View Hospital Directory</button>
+    </div>
+
+    <!-- Update the hospital directory section -->
+    <section id="hospitalDirectory" class="hospital-directory" style="display: none;">
+        <div class="container">
+            <h2>Available Hospitals</h2>
+            <div id="hospitalList" class="hospital-grid">
+                <!-- Hospitals will be loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- New Section for Blood Donation Info -->
+    <section class="info-section">
+        <h2>Why Donate Blood?</h2>
+        <p>
+            Donating blood is a simple act that can save lives. Every two seconds, someone in the world needs blood.
+            By donating blood, you contribute to saving lives of accident victims, patients undergoing surgery, 
+            and people suffering from serious illnesses. Your blood donation can be the difference between life and death.
+        </p>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Blood Donation System. All Rights Reserved.</p>
+            <div class="social-icons">
+                <a href="https://facebook.com" target="_blank">Facebook</a>
+                <a href="https://twitter.com" target="_blank">Twitter</a>
+                <a href="https://instagram.com" target="_blank">Instagram</a>
+            </div>
+            <p>Follow us for updates and information on upcoming donation events.</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleSubMenu(section) {
+            let subMenu = document.getElementById(section + '-sub-menu');
+            if (subMenu.classList.contains('show')) {
+                subMenu.classList.remove('show');
+            } else {
+                subMenu.classList.add('show');
+            }
+        }
+    </script>
+
+    <!-- Update the script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.appspot.com",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+            measurementId: "G-YFQC09RXMF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Updated loadHospitals function
+        async function loadHospitals() {
+            try {
+                const hospitalList = document.getElementById('hospitalList');
+                const querySnapshot = await getDocs(collection(db, "hospitals"));
+                
+                hospitalList.innerHTML = '';
+
+                querySnapshot.forEach((doc) => {
+                    const hospitalData = doc.data();
+                    const hospitalCard = document.createElement('div');
+                    hospitalCard.className = 'hospital-card';
+                    
+                    hospitalCard.innerHTML = `
+                        <div class="hospital-name">${hospitalData.name}</div>
+                        <div class="hospital-details" id="details-${doc.id}">
+                            <p><strong>Location:</strong> ${hospitalData.location || 'Not specified'}</p>
+                            <p><strong>Contact:</strong> ${hospitalData.phone || 'Not specified'}</p>
+                            <p><strong>Email:</strong> ${hospitalData.email || 'Not specified'}</p>
+                            <p><strong>Working Hours:</strong> ${hospitalData.workingHours || '24/7'}</p>
+                        </div>
+                    `;
+
+                    // Add click event to toggle details
+                    hospitalCard.querySelector('.hospital-name').addEventListener('click', function() {
+                        // Close all other open details first
+                        document.querySelectorAll('.hospital-details.show').forEach(detail => {
+                            if (detail.id !== `details-${doc.id}`) {
+                                detail.classList.remove('show');
+                            }
+                        });
+                        
+                        // Toggle current details
+                        const details = hospitalCard.querySelector('.hospital-details');
+                        details.classList.toggle('show');
+                    });
+
+                    hospitalList.appendChild(hospitalCard);
+                });
+
+            } catch (error) {
+                console.error("Error loading hospitals:", error);
+                document.getElementById('hospitalList').innerHTML = 
+                    '<p style="text-align: center; color: #ff3333;">Failed to load hospital directory. Please try again later.</p>';
+            }
+        }
+
+        // Add click handler for directory button
+        document.getElementById('showDirectoryBtn').addEventListener('click', function() {
+            const directory = document.getElementById('hospitalDirectory');
+            if (directory.style.display === 'none') {
+                directory.style.display = 'block';
+                loadHospitals();
+                this.textContent = 'Hide Hospital Directory';
+            } else {
+                directory.style.display = 'none';
+                this.textContent = 'View Hospital Directory';
+            }
+        });
+    </script>
+</body>
+</html>

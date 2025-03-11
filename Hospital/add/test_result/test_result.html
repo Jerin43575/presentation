@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Assessment Results</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+        .test-section { background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin-bottom: 15px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .btn { background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background-color: #45a049; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table, th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background-color: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Medical Assessment Results</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Disease Name</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="testResults"></tbody>
+        </table>
+        <form id="assessmentForm">
+            <div class="form-group">
+                <label for="overallStatus">Overall Assessment</label>
+                <select id="overallStatus" required>
+                    <option value="positive">Positive</option>
+                    <option value="negative">Negative</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="finalNotes">Final Notes</label>
+                <input type="text" id="finalNotes">
+            </div>
+            <button type="submit" class="btn">Submit Assessment</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.appspot.com",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+            measurementId: "G-YFQC09RXMF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Get appointmentId from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const appointmentId = urlParams.get('appointmentId');
+
+        // Retrieve the MedicalassessmentData from Firestore
+        async function loadMedicalData() {
+            try {
+                const docRef = doc(db, "appointments", appointmentId);
+                const docSnap = await getDoc(docRef);
+
+                if (!docSnap.exists()) {
+                    alert("No data found");
+                    return;
+                }
+
+                const data = docSnap.data();
+                const medicalAssessmentData = data.healthAssessment.MedicalassessmentData;
+                const resultsContainer = document.getElementById('testResults');
+
+                // Loop through all diseases and add them to the table
+                medicalAssessmentData.forEach((disease, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${disease}</td>
+                        <td>
+                            <select id="result${index}">
+                                <option value="positive">Positive</option>
+                                <option value="negative">Negative</option>
+                            </select>
+                        </td>
+                    `;
+                    resultsContainer.appendChild(row);
+                });
+
+            } catch (error) {
+                console.error("Error loading data:", error);
+                alert("Failed to load data.");
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('assessmentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const docRef = doc(db, "appointments", appointmentId);
+                const docSnap = await getDoc(docRef);
+
+                const data = docSnap.data();
+                const medicalAssessmentData = data.healthAssessment.MedicalassessmentData;
+
+                // Map the diseases to results
+                const finalResults = medicalAssessmentData.map((disease, index) => ({
+                    disease: disease,
+                    result: document.getElementById(`result${index}`).value
+                }));
+
+                // Save results to Firestore
+                await setDoc(doc(db, "medical_assessment_results", appointmentId), {
+                    userName: data.userName,
+                    bloodType: data.bloodType,
+                    timeSlot: data.timeSlot,
+                    email: data.email,
+                    testResults: finalResults,
+                    overallStatus: document.getElementById('overallStatus').value,
+                    finalNotes: document.getElementById('finalNotes').value,
+                    timestamp: new Date().toISOString()
+                });
+
+                alert("Assessment saved successfully!");
+                window.location.href = '../add.html';
+
+            } catch (error) {
+                console.error("Error saving data:", error);
+                alert("Failed to submit assessment.");
+            }
+        });
+
+        // Load data on page load
+        window.onload = loadMedicalData;
+    </script>
+</body>
+</html>

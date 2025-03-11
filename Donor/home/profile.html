@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donor Profile - Blood Bank IoT</title>
+    <style>
+        /* Basic reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Profile container */
+        .profile-container {
+            background-color: white;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px;
+        }
+
+        /* Loader */
+        #loader {
+            display: none;
+            margin-top: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+
+        /* Title */
+        .profile-container h2 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        /* Profile Image styling */
+        .profile-image {
+            margin-bottom: 20px;
+        }
+
+        .profile-image img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* Profile details */
+        .profile-details {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .profile-details p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .profile-details strong {
+            color: #333;
+        }
+
+        /* Logout button */
+        .logout-btn, .action-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .logout-btn {
+            background-color: #f44336;
+        }
+
+        .logout-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        .action-btn {
+            background-color: #4CAF50;
+        }
+
+        .action-btn:hover {
+            background-color: #388E3C;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 400px) {
+            .profile-container {
+                width: 90%;
+            }
+        }
+
+.action-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-transform: uppercase;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.action-btn:hover {
+    background-color: #388E3C;
+    transform: scale(1.05);
+}
+
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <h2>Donor Profile</h2>
+        <div class="profile-image">
+            <img id="profile-image" src="default-avatar.jpg" alt="Profile Image">
+        </div>
+
+        <div class="profile-details">
+            <p><strong>Full Name:</strong> <span id="name">Loading...</span></p>
+            <p><strong>Email:</strong> <span id="email">Loading...</span></p>
+            <p><strong>Phone:</strong> <span id="phone">Loading...</span></p>
+            <p><strong>Date of Birth:</strong> <span id="dob">Loading...</span></p>
+            <p><strong>Blood Type:</strong> <span id="blood-type">Loading...</span></p>
+        </div>
+
+        <button class="logout-btn" id="logout-btn">Logout</button>
+        <button class="action-btn" id="blood-stock-btn">Blood Stock</button>
+        <button class="action-btn" id="blood-donation-btn">Blood Donation</button>
+<button class="action-btn" onclick="window.location.href='../addi/cert/cert.html'">Certificates</button>
+
+<button class="action-btn" id="test-results-btn">View Medical Test Results</button>
+
+
+
+
+        <div id="loader">Logging out...</div> <!-- Moved here outside of the script -->
+    </div>
+
+    <script type="module">
+        // Import Firebase services
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.appspot.com",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:27e54a3b8cc432237bb5b7",
+            measurementId: "G-7P397628JV"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Elements
+        const nameElement = document.getElementById('name');
+        const emailElement = document.getElementById('email');
+        const phoneElement = document.getElementById('phone');
+        const dobElement = document.getElementById('dob');
+        const bloodTypeElement = document.getElementById('blood-type');
+        const logoutButton = document.getElementById('logout-btn');
+        const profileImage = document.getElementById('profile-image');
+        const loader = document.getElementById('loader');
+
+        // Check if the user is logged in
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                try {
+                    // First get the user's email from Auth
+                    const email = user.email;
+                    
+                    // Query Firestore to find the document with matching email
+                    const querySnapshot = await getDocs(query(collection(db, "donors"), where("email", "==", email)));
+                    
+                    if (!querySnapshot.empty) {
+                        const donorData = querySnapshot.docs[0].data();
+                        nameElement.textContent = donorData.name;
+                        emailElement.textContent = donorData.email;
+                        phoneElement.textContent = donorData.phone;
+                        dobElement.textContent = donorData.dob;
+                        bloodTypeElement.textContent = donorData.bloodType;
+                        if (donorData.profileImage) {
+                            profileImage.src = donorData.profileImage;
+                        }
+                    } else {
+                        console.log("No matching document!");
+                        window.location.href = "../login/donor_login.html";
+                    }
+                } catch (error) {
+                    console.error("Error fetching donor data:", error);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.color = 'red';
+                    errorDiv.style.marginTop = '10px';
+                    errorDiv.textContent = 'Error loading profile data. Please try again.';
+                    document.querySelector('.profile-container').appendChild(errorDiv);
+                }
+            } else {
+                window.location.href = "../login/donor_login.html";
+            }
+        });
+
+        // Logout functionality
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                // Redirect to login page immediately after signout
+                window.location.href = "../login/donor_login.html";
+            } catch (error) {
+                console.error("Error signing out:", error);
+                // Optional: Show error in a non-intrusive way
+                const errorDiv = document.createElement('div');
+                errorDiv.style.color = 'red';
+                errorDiv.style.marginTop = '10px';
+                errorDiv.textContent = 'Error signing out. Please try again.';
+                document.querySelector('.profile-container').appendChild(errorDiv);
+            }
+        });
+
+        // Button actions
+        document.getElementById('blood-stock-btn').addEventListener('click', () => {
+            window.location.href = "../Stock_Display/blood_stock.html";
+        });
+
+        document.getElementById('blood-donation-btn').addEventListener('click', () => {
+            window.location.href = "../Appointment/aknow/blood_donation.html";
+        });
+
+document.getElementById('test-results-btn').addEventListener('click', () => {
+    window.location.href = "../addi/test_re/test_res.html";
+});
+
+    </script>
+</body>
+</html>

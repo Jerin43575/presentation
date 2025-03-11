@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Certificates</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+        }
+        .certificate-list {
+            max-width: 800px;
+            margin: auto;
+        }
+        .certificate-item {
+            background-color: #fff;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Your Certificates</h2>
+<div class="certificate-list" id="certificateList"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+        authDomain: "blood-bank-25d02.firebaseapp.com",
+        projectId: "blood-bank-25d02",
+        storageBucket: "blood-bank-25d02.appspot.com",
+        messagingSenderId: "712477215126",
+        appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+        measurementId: "G-YFQC09RXMF"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const certificateList = document.getElementById('certificateList');
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const email = user.email;
+
+            const q = query(collection(db, "certificates"), where("email", "==", email));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                certificateList.innerHTML = '<p>No certificates found.</p>';
+                return;
+            }
+
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                const div = document.createElement('div');
+                div.className = 'certificate-item';
+                div.innerHTML = `
+                    <div>
+                        <p><strong>Donor Name:</strong> ${data.donorName}</p>
+                        <p><strong>Donation Date:</strong> ${data.donationDate}</p>
+                        <p><strong>Blood Type:</strong> ${data.bloodType}</p>
+                    </div>
+                    <button class="btn" onclick="downloadCertificate('${data.certificateData}')">Download</button>
+                `;
+                certificateList.appendChild(div);
+            });
+        } else {
+            alert("You need to be logged in to view your certificates.");
+            window.location.href = 'login.html';
+        }
+    });
+
+    window.downloadCertificate = function(certificateData) {
+        const link = document.createElement('a');
+        link.href = certificateData;
+        link.download = 'Blood_Donation_Certificate.pdf';
+        link.click();
+    }
+</script>
+
+</body>
+</html>

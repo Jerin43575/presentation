@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Stock Management</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        form {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #388E3C;
+        }
+
+        table {
+            width: 100%;
+            max-width: 600px;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            form {
+                width: 100%;
+                padding: 15px;
+            }
+
+            input, select, button {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 20px;
+            }
+
+            form {
+                width: 90%;
+                padding: 10px;
+            }
+
+            input, select, button {
+                font-size: 12px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Blood Stock Management</h1>
+
+    <!-- Data Insertion Form -->
+    <form id="add-blood-form">
+        <h2>Add or Update Blood Stock</h2>
+        <label for="bloodType">Blood Type:</label>
+        <select id="bloodType" required>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+        </select>
+
+        <label for="unitsAvailable">Units Available:</label>
+        <input type="number" id="unitsAvailable" placeholder="Enter units" required>
+
+        <button type="submit">Add Units</button>
+    </form>
+
+    <!-- Data Deletion Form -->
+    <form id="remove-blood-form">
+        <h2>Remove Units from Blood Stock</h2>
+        <label for="removeBloodType">Blood Type:</label>
+        <select id="removeBloodType" required>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+        </select>
+
+        <label for="removeUnits">Units to Remove:</label>
+        <input type="number" id="removeUnits" placeholder="Enter units" required>
+
+        <button type="submit">Remove Units</button>
+    </form>
+
+    <!-- Display Blood Stock Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Blood Type</th>
+                <th>Units Available</th>
+            </tr>
+        </thead>
+        <tbody id="blood-stock-table">
+            <!-- Rows added dynamically -->
+        </tbody>
+    </table>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, setDoc, doc, updateDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.appspot.com",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+            measurementId: "G-YFQC09RXMF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        let hospitalId = null;
+
+        // Check if the user is authenticated
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                hospitalId = user.uid;
+                loadBloodStock();
+            } else {
+                alert("Please log in first.");
+                window.location.href = "Hospital\hoslogin.html"; // Redirect to login page
+            }
+        });
+
+        // Add Units Form Submission
+        document.getElementById("add-blood-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const bloodType = document.getElementById("bloodType").value;
+            const unitsAvailable = parseInt(document.getElementById("unitsAvailable").value);
+
+            if (!hospitalId) {
+                alert("Hospital ID not found. Please login.");
+                return;
+            }
+
+            try {
+                const bloodDocRef = doc(db, "blood_stock", hospitalId, "blood_types", bloodType);
+                const docSnap = await getDoc(bloodDocRef);
+
+                if (docSnap.exists()) {
+                    await updateDoc(bloodDocRef, {
+                        unitsAvailable: increment(unitsAvailable),
+                    });
+                    alert("Blood stock updated successfully!");
+                } else {
+                    await setDoc(bloodDocRef, {
+                        bloodType,
+                        unitsAvailable,
+                    });
+                    alert("New blood stock added successfully!");
+                }
+                loadBloodStock();
+            } catch (error) {
+                console.error("Error updating blood stock:", error);
+            }
+        });
+
+        // Remove Units Form Submission
+        document.getElementById("remove-blood-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const bloodType = document.getElementById("removeBloodType").value;
+            const unitsToRemove = parseInt(document.getElementById("removeUnits").value);
+
+            if (!hospitalId) {
+                alert("Hospital ID not found. Please login.");
+                return;
+            }
+
+            try {
+                const bloodDocRef = doc(db, "blood_stock", hospitalId, "blood_types", bloodType);
+                const docSnap = await getDoc(bloodDocRef);
+
+                if (docSnap.exists()) {
+                    const currentUnits = docSnap.data().unitsAvailable;
+                    if (currentUnits >= unitsToRemove) {
+                        await updateDoc(bloodDocRef, {
+                            unitsAvailable: increment(-unitsToRemove),
+                        });
+                        alert("Units removed successfully!");
+                    } else {
+                        alert("Not enough units available to remove.");
+                    }
+                } else {
+                    alert("Blood type not found in stock.");
+                }
+                loadBloodStock();
+            } catch (error) {
+                console.error("Error removing blood stock:", error);
+            }
+        });
+
+        // Load Blood Stock Data
+        async function loadBloodStock() {
+            if (!hospitalId) return;
+            
+            const tableBody = document.getElementById("blood-stock-table");
+            tableBody.innerHTML = "";
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "blood_stock", hospitalId, "blood_types"));
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const row = document.createElement("tr");
+                    row.innerHTML = `<td>${data.bloodType}</td><td>${data.unitsAvailable}</td>`;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error loading blood stock data:", error);
+            }
+        }
+    </script>
+</body>
+</html>

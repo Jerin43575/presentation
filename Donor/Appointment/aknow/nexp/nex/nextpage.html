@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Assessment</title>
+    <link rel="stylesheet" href="..\..\..\..\Appointment\style\styler.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Medical Assessment</h1>
+        <form id="medicalAssessmentForm">
+            <div class="question">
+                <label>Do you want to check for the following diseases?</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" class="select-all"> Select All</label>
+                    <label><input type="checkbox" name="disease" value="hepatitis_b"> Hepatitis B</label>
+                    <label><input type="checkbox" name="disease" value="hiv"> HIV</label>
+                    <label><input type="checkbox" name="disease" value="syphilis"> Syphilis</label>
+                    <label><input type="checkbox" name="disease" value="malaria"> Malaria</label>
+                    <label><input type="checkbox" name="disease" value="jaundice"> Jaundice</label>
+                    <label><input type="checkbox" name="disease" value="none"> None</label>
+                </div>
+            </div>
+            <h3>Counseling</h3>
+            <p>Blood donation is a simple and safe way to save lives...</p>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.appspot.com",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+            measurementId: "G-YFQC09RXMF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Get form element
+        const form = document.getElementById('medicalAssessmentForm');
+
+        // Handle "Select All" functionality
+        document.querySelector('.select-all').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:not(.select-all)');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.value !== 'none') {
+                    checkbox.checked = this.checked;
+                }
+            });
+        });
+
+        // Handle 'None' checkbox
+        document.querySelector('input[value="none"]').addEventListener('change', function() {
+            if (this.checked) {
+                document.querySelectorAll('input[name="disease"]:not([value="none"])').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                document.querySelector('.select-all').checked = false;
+            }
+        });
+
+        // Handle form submission
+        // Handle form submission
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    try {
+        // Get current user
+        const user = auth.currentUser;
+        if (!user) {
+            throw new Error('Please log in to submit the assessment');
+        }
+
+        // Retrieve appointmentId from localStorage
+        const savedAppointment = localStorage.getItem('lastAppointment');
+        if (!savedAppointment) {
+            throw new Error('No appointment found in local storage. Please book an appointment first.');
+        }
+
+        const { appointmentId } = JSON.parse(savedAppointment);
+
+        if (!appointmentId) {
+            throw new Error('Missing appointment ID in local storage.');
+        }
+
+        // Collect selected diseases
+        const selectedDiseases = Array.from(document.querySelectorAll('input[name="disease"]:checked'))
+            .map(checkbox => checkbox.value);
+
+        if (selectedDiseases.length === 0) {
+            alert("Please select at least one option");
+            return;
+        }
+
+        // Update the appointment document in Firestore
+        await updateDoc(doc(db, "appointments", appointmentId), {
+            "healthAssessment.MedicalassessmentData": selectedDiseases
+        });
+
+        // Show success message and redirect
+        alert("Medical assessment submitted successfully!");
+        window.location.href = "ne/nexp.html";
+
+    } catch (error) {
+        console.error("Error submitting medical assessment:", error);
+        alert(error.message);
+    }
+});
+
+
+        // Check authentication
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = "../../../../../Donor/login/donor_login.html";
+            }
+        });
+    </script>
+</body>
+</html>

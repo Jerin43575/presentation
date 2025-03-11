@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Donation Appointment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        form {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #388E3C;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 20px;
+            }
+
+            form {
+                padding: 15px;
+            }
+
+            select, button {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 18px;
+            }
+
+            form {
+                width: 90%;
+            }
+
+            select, button {
+                font-size: 12px;
+            }
+        }
+
+        .status-container {
+            width: 100%;
+            max-width: 500px;
+            margin-top: 20px;
+        }
+
+        .status-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .status-pending {
+            background-color: #ffeeba;
+            color: #856404;
+        }
+
+        .status-confirmed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .appointment-detail {
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        @media (max-width: 768px) {
+            .status-container {
+                padding: 0 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Book a Blood Donation Slot</h1>
+
+    <!-- Appointment form -->
+    <form id="donation-form">
+        <label for="hospital">Select Hospital</label>
+        <select id="hospital" required>
+            <option value="">Select Hospital</option>
+            <!-- Hospitals will be loaded dynamically -->
+        </select>
+
+        <label for="time-slot">Select Time Slot</label>
+        <select id="time-slot" required>
+            <option value="9:00 AM - 10:00 AM">9:00 AM - 10:00 AM</option>
+            <option value="10:00 AM - 11:00 AM">10:00 AM - 11:00 AM</option>
+            <option value="11:00 AM - 12:00 PM">11:00 AM - 12:00 PM</option>
+            <option value="2:00 PM - 3:00 PM">2:00 PM - 3:00 PM</option>
+            <option value="3:00 PM - 4:00 PM">3:00 PM - 4:00 PM</option>
+        </select>
+
+        <button type="submit">Book Appointment</button>
+    </form>
+
+    <!-- Add this after the form -->
+    <div id="appointment-status" class="status-container" style="display: none;">
+        <h2>Your Recent Appointment</h2>
+        <div class="status-card">
+            <div id="status-details"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, where, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.appspot.com",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+            measurementId: "G-YFQC09RXMF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // DOM elements
+        const donationForm = document.getElementById("donation-form");
+        const hospitalSelect = document.getElementById("hospital");
+
+        // Load registered hospitals
+        async function loadRegisteredHospitals() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "hospitals"));
+                hospitalSelect.innerHTML = '<option value="">Select Hospital</option>';
+                
+                querySnapshot.forEach((doc) => {
+                    const hospitalData = doc.data();
+                    const option = document.createElement("option");
+                    option.value = hospitalData.name;
+                    option.textContent = `${hospitalData.name} - ${hospitalData.location}`;
+                    hospitalSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error loading hospitals:", error);
+            }
+        }
+
+        // Check authentication and load hospitals
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loadRegisteredHospitals();
+                donationForm.style.display = 'block';
+                checkExistingAppointment(user.email);
+            } else {
+                window.location.href = "../login/donor_login.html";
+            }
+        });
+
+        // Form submission handler
+        donationForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const hospital = hospitalSelect.value;
+    const timeSlot = document.getElementById("time-slot").value;
+    const user = auth.currentUser;
+
+    if (!hospital || !timeSlot) {
+        return;
+    }
+
+    try {
+        // Get donor details
+        const donorDoc = await getDocs(
+            query(collection(db, "donors"), 
+            where("email", "==", user.email))
+        );
+
+        if (!donorDoc.empty) {
+            const donorData = donorDoc.docs[0].data();
+            
+            // Save the appointment
+            const appointmentRef = await addDoc(collection(db, "appointments"), {
+                hospital,
+                timeSlot,
+                userId: user.uid,
+                userName: donorData.name,
+                email: user.email,
+                bloodType: donorData.bloodType,
+                createdAt: new Date().toISOString(),
+                status: 'pending',
+                healthAssessment: {
+                    assessmentData: {},
+                    MedicalassessmentData: {},
+                    Declaration: {}
+                }
+            });
+
+            // Save appointment ID to localStorage
+            const appointmentData = {
+                appointmentId: appointmentRef.id,
+                hospital,
+                timeSlot,
+                userName: donorData.name,
+                email: user.email,
+                bloodType: donorData.bloodType,
+                createdAt: new Date().toISOString()
+            };
+            localStorage.setItem('lastAppointment', JSON.stringify(appointmentData));
+
+            // Show success alert
+            alert("Appointment registration successful!");
+            
+            // Redirect to declaration page with appointment ID
+            window.location.href = `nexp/Aknowledgement.html?appointmentId=${appointmentRef.id}`;
+        }
+    } catch (error) {
+        console.error("Error saving appointment:", error);
+        const errorDiv = document.createElement('div');
+        errorDiv.style.color = 'red';
+        errorDiv.style.marginTop = '10px';
+        errorDiv.textContent = 'Failed to book appointment. Please try again.';
+        donationForm.appendChild(errorDiv);
+    }
+});
+
+        // Add this after Firebase initialization
+async function checkExistingAppointment(userEmail) {
+    try {
+        const q = query(
+            collection(db, "appointments"),
+            where("email", "==", userEmail),
+            where("status", "in", ["pending", "confirmed", "rejected"])
+        );
+        
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            // Sort by createdAt to get the most recent appointment
+            const sortedAppointments = querySnapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() }))
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            const recentAppointment = sortedAppointments[0];
+            const appointmentId = recentAppointment.id;
+
+            // Show status section
+            const statusContainer = document.getElementById('appointment-status');
+            const statusDetails = document.getElementById('status-details');
+            statusContainer.style.display = 'block';
+            
+            // Format date
+            const createdDate = new Date(recentAppointment.createdAt).toLocaleString();
+            
+            // Get status badge class
+            const statusClass = `status-${recentAppointment.status}`;
+            
+            statusDetails.innerHTML = `
+                <div class="appointment-detail">
+                    <strong>Hospital:</strong> ${recentAppointment.hospital}
+                </div>
+                <div class="appointment-detail">
+                    <strong>Time Slot:</strong> ${recentAppointment.timeSlot}
+                </div>
+                <div class="appointment-detail">
+                    <strong>Status:</strong> 
+                    <span class="status-badge ${statusClass}">
+                        ${recentAppointment.status.toUpperCase()}
+                    </span>
+                </div>
+                <div class="appointment-detail">
+                    <strong>Booked On:</strong> ${createdDate}
+                </div>
+                <div class="appointment-detail" id="next-donation-date">
+                </div>
+            `;
+
+            // ✅ If status is "pending", show cancel button
+            if (recentAppointment.status === 'pending') {
+                donationForm.style.display = 'none';
+
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = '❌ Cancel Appointment';
+                cancelButton.style.backgroundColor = 'red';
+                cancelButton.style.color = 'white';
+                cancelButton.style.padding = '10px';
+                cancelButton.style.border = 'none';
+                cancelButton.style.cursor = 'pointer';
+
+                statusContainer.appendChild(cancelButton);
+
+                // 👉 Handle cancel button click
+                cancelButton.addEventListener('click', async () => {
+                    const confirmCancel = confirm('Are you sure you want to cancel the appointment?');
+                    if (confirmCancel) {
+                        await deleteDoc(doc(db, "appointments", appointmentId));
+                        alert('✅ Appointment cancelled successfully.');
+                        window.location.reload();
+                    }
+                });
+            }
+
+            // ✅ If status is "confirmed", hide form + show next donation date
+            if (recentAppointment.status === 'confirmed') {
+                donationForm.style.display = 'none';
+
+                // Calculate next donation date (90 days later)
+                const donationDate = new Date(recentAppointment.createdAt);
+                donationDate.setDate(donationDate.getDate() + 90);
+
+                const formattedDate = donationDate.toLocaleDateString();
+                document.getElementById('next-donation-date').innerHTML = `
+                    <strong>🩸 You can donate again after:</strong> ${formattedDate}
+                `;
+            }
+
+            // ✅ If status is "rejected", allow re-appointment
+            if (recentAppointment.status === 'rejected') {
+                donationForm.style.display = 'block';
+                alert("⚠️ Your previous appointment was rejected. You can now re-appoint.");
+            }
+
+            // ✅ Add real-time listener if pending
+            if (recentAppointment.status === 'pending') {
+                const unsubscribe = onSnapshot(doc(db, "appointments", appointmentId), (doc) => {
+                    const newData = doc.data();
+                    if (newData.status !== recentAppointment.status) {
+                        // Update status display
+                        const statusBadge = statusDetails.querySelector('.status-badge');
+                        statusBadge.className = `status-badge status-${newData.status}`;
+                        statusBadge.textContent = newData.status.toUpperCase();
+                        
+                        // Show notification
+                        if (newData.status === 'confirmed') {
+                            alert('✅ Your appointment has been confirmed by the hospital!');
+                            donationForm.style.display = 'none';
+                        } 
+                        else if (newData.status === 'rejected') {
+                            alert('❌ Your appointment has been rejected. You can now re-appoint.');
+                            donationForm.style.display = 'block';
+                        }
+                    }
+                });
+
+                // Clean up listener when page refreshes
+                window.addEventListener('beforeunload', () => unsubscribe());
+            }
+        }
+    } catch (error) {
+        console.error("Error checking existing appointment:", error);
+    }
+}
+
+    </script>
+</body>
+</html>

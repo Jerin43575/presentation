@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .button-container button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .button-container button:hover {
+            background-color: #388E3C;
+        }
+
+        .section-container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .add-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group select,
+        .form-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .section-container {
+                width: 95%;
+                padding: 15px;
+            }
+
+            .button-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .button-container button {
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Hospital Dashboard</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Hospital Name</th>
+                <th>Location</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody id="hospital-details">
+            <!-- Dynamic hospital details will be added here -->
+        </tbody>
+    </table>
+    <div class="button-container">
+        <button id="appointments-btn">Blood Booking Appointments</button>
+        <button id="stock-update-btn">Stock Update</button>
+        <button id="list-btn">View Lists</button>
+        <button id="add-btn">Add Details</button>
+    </div>
+
+    <div id="listSection" class="section-container" style="display: none;">
+        <h2>Blood Stock Lists</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Blood Type</th>
+                    <th>Units Available</th>
+                    <th>Last Updated</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="blood-stock-list">
+                <!-- Blood stock data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div id="addSection" class="section-container" style="display: none;">
+        <h2>Add Blood Stock</h2>
+        <form id="addStockForm" class="add-form">
+            <div class="form-group">
+                <label for="bloodType">Blood Type:</label>
+                <select id="bloodType" required>
+                    <option value="">Select Blood Type</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="units">Units:</label>
+                <input type="number" id="units" min="1" required>
+            </div>
+            <button type="submit">Add Stock</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.appspot.com",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+            measurementId: "G-YFQC09RXMF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const hospitalDetailsTable = document.getElementById("hospital-details");
+
+        // Monitor auth state
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Get hospital details for the logged-in user
+                const docRef = doc(db, "hospitals", user.uid); // Assuming the hospital's UID is used as the document ID
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const hospitalData = docSnap.data();
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${hospitalData.name}</td>
+                        <td>${hospitalData.location}</td>
+                        <td>${hospitalData.email}</td>
+                    `;
+                    hospitalDetailsTable.appendChild(row);
+                } else {
+                    alert("No hospital data found for this user.");
+                }
+            } else {
+                alert("No user is logged in.");
+                window.location.href = "hoslogin.html"; // Redirect to login page
+            }
+        });
+
+        // Button click handlers
+        document.getElementById("appointments-btn").addEventListener("click", () => {
+            window.location.href = "Appointment_Display/appoinments.html";
+        });
+
+        document.getElementById("stock-update-btn").addEventListener("click", () => {
+            window.location.href = "Stock_Update/stock-update.html";
+        });
+
+        // Get button elements
+        const listBtn = document.getElementById('list-btn');
+        const addBtn = document.getElementById('add-btn');
+        const listSection = document.getElementById('listSection');
+        const addSection = document.getElementById('addSection');
+
+        // Toggle sections
+        listBtn.addEventListener('click', () => {
+            window.location.href = "lists/donor_list.html";
+        });
+
+        addBtn.addEventListener('click', () => {
+            window.location.href = "add/add.html"; // Updated to navigate to add.html
+        });
+
+        // Handle form submission
+        document.getElementById('addStockForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const bloodType = document.getElementById('bloodType').value;
+            const units = document.getElementById('units').value;
+            
+            try {
+                const user = auth.currentUser;
+                if (!user) throw new Error('Please log in first');
+
+                await addDoc(collection(db, "hospitals", user.uid, "bloodStock"), {
+                    bloodType,
+                    units: parseInt(units),
+                    updatedAt: new Date().toISOString(),
+                    status: units > 0 ? 'Available' : 'Low Stock'
+                });
+
+                alert('Blood stock updated successfully!');
+                document.getElementById('addStockForm').reset();
+                loadBloodStockList();
+            } catch (error) {
+                console.error("Error adding stock:", error);
+                alert('Failed to update blood stock');
+            }
+        });
+
+        // Load blood stock list
+        async function loadBloodStockList() {
+            try {
+                const user = auth.currentUser;
+                if (!user) throw new Error('Please log in first');
+
+                const bloodStockRef = collection(db, "hospitals", user.uid, "bloodStock");
+                const bloodStockSnapshot = await getDocs(bloodStockRef);
+                const bloodStockData = bloodStockSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const bloodStockList = document.getElementById('blood-stock-list');
+                bloodStockList.innerHTML = '';
+
+                bloodStockData.forEach(stock => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${stock.bloodType}</td>
+                        <td>${stock.units}</td>
+                        <td>${stock.updatedAt}</td>
+                        <td>${stock.status}</td>
+                    `;
+                    bloodStockList.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Error loading blood stock list:", error);
+                alert('Failed to load blood stock list');
+            }
+        }
+    </script>
+</body>
+</html>

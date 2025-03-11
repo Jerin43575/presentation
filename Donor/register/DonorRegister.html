@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-analytics.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donor Registration - Blood Bank IoT</title>
+    <style>
+        /* Basic reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem 0;
+            overflow-y: auto;
+        }
+
+        /* Registration container */
+        .registration-container {
+            background-color: white;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            width: min(90%, 350px);
+            padding: 1.25rem;
+            text-align: center;
+            margin: auto;
+            position: relative;
+        }
+
+        /* Title */
+        .registration-container h2 {
+            color: #4CAF50;
+            margin-bottom: 1.25rem;
+            font-weight: 600;
+            font-size: clamp(1.5rem, 4vw, 2rem);
+        }
+
+        /* Input group */
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        /* Input labels */
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Input fields */
+        input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="date"], select {
+            width: 100%;
+            padding: 0.625rem;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            transition: 0.3s ease;
+            font-size: clamp(14px, 2vw, 16px);
+        }
+
+        /* Input hover and focus */
+        input:focus, select:focus {
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+            outline: none;
+        }
+
+        /* Button styling */
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: clamp(16px, 2vw, 18px);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        /* Button hover effect */
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Login link styling */
+        .login-link {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .login-link a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 400px) {
+            body {
+                padding: 1rem;
+                height: auto;
+            }
+
+            .input-group {
+                margin-bottom: 1rem;
+            }
+
+            .registration-container {
+                margin: 0.5rem;
+                padding: 1rem;
+            }
+        }
+
+        /* Add landscape orientation support */
+        @media (max-height: 600px) and (orientation: landscape) {
+            body {
+                height: auto;
+                min-height: 100vh;
+                padding: 1rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="registration-container">
+        <h2>Donor Registration</h2>
+        <form id="donor-form">
+            <div class="input-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="Enter Full Name" required>
+            </div>
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="Enter Email" required>
+            </div>
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username (lowercase letters, numbers, underscores)" required>
+                <small id="username-status" style="color: red; display: none;">Username already exists</small>
+            </div>
+            <div class="input-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" placeholder="Enter Phone Number" required>
+            </div>
+            <div class="input-group">
+                <label for="dob">Date of Birth</label>
+                <input type="date" id="dob" required>
+            </div>
+            <div class="input-group">
+                <label for="blood-type">Blood Type</label>
+                <select id="blood-type" required>
+                    <option value="" disabled selected>Select Blood Type</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter Password" required>
+            </div>
+            <div class="input-group">
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" placeholder="Confirm Password" required>
+            </div>
+            <button type="submit">Register</button>
+        </form>
+        <p class="login-link">Already have an account? <a href="D:\project\Donor\login\donor_login.html">Login here</a></p>
+    </div>
+
+    <script type="module">
+        // Import Firebase services
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, collection, query, where, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.firebasestorage.app",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:27e54a3b8cc432237bb5b7",
+            measurementId: "G-7P397628JV"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Add username validation function
+        async function checkUsername(username) {
+            try {
+                const docRef = doc(db, "donors", username);
+                const docSnap = await getDoc(docRef);
+                return docSnap.exists();
+            } catch (error) {
+                console.error("Error checking username:", error);
+                return false;
+            }
+        }
+
+        // Add username input event listener
+        const usernameInput = document.getElementById('username');
+        const usernameStatus = document.getElementById('username-status');
+        let usernameValid = false;
+
+        usernameInput.addEventListener('blur', async () => {
+            const username = usernameInput.value.trim();
+            if (username) {
+                const exists = await checkUsername(username);
+                usernameValid = !exists;
+                usernameStatus.style.display = exists ? 'block' : 'none';
+                usernameInput.style.borderColor = exists ? 'red' : '#ccc';
+            }
+        });
+
+        // Update form submission handler
+        const form = document.getElementById('donor-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Get form values
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value.trim();
+            const phone = document.getElementById('phone').value;
+            const dob = document.getElementById('dob').value;
+            const bloodType = document.getElementById('blood-type').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            // Validate passwords and username
+            if (password !== confirmPassword) {
+                document.getElementById('confirm-password').style.borderColor = 'red';
+                return;
+            }
+
+            try {
+                // Check username one more time before registration
+                const exists = await checkUsername(username);
+                if (exists) {
+                    usernameStatus.style.display = 'block';
+                    usernameInput.style.borderColor = 'red';
+                    return;
+                }
+
+                // Create user in Firebase Auth
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Save donor details in Firestore using username as document ID
+                await setDoc(doc(db, "donors", username), {
+                    name: name,
+                    email: email,
+                    username: username,
+                    phone: phone,
+                    dob: dob,
+                    bloodType: bloodType,
+                    uid: user.uid,  // Store the Firebase Auth UID
+                    createdAt: new Date().toISOString()
+                });
+
+                // Show success message and redirect
+                alert("Registration successful!");
+                window.location.href = "../home/profile.html";
+                
+            } catch (error) {
+                console.error("Registration error:", error);
+                const errorDiv = document.createElement('div');
+                errorDiv.style.color = 'red';
+                errorDiv.style.marginTop = '10px';
+                errorDiv.textContent = error.message;
+                form.appendChild(errorDiv);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Assessment</title>
+    <link rel="stylesheet" href="..\..\..\Appointment\style\styler.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Health Assessment</h1>
+        <form id="healthAssessmentForm">
+            <div class="question">
+                <label>1. Have you donated blood previously?</label>
+                <div class="options">
+                <label><input type="radio" name="donated_blood" value="yes"> Yes</label>
+                <label><input type="radio" name="donated_blood" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>2. Have you eaten anything in the last 4 hours?</label>
+                <div class="options">
+                <label><input type="radio" name="eaten_last_4_hours" value="yes"> Yes</label>
+                <label><input type="radio" name="eaten_last_4_hours" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>3. Have you already given blood in the last 16 weeks?</label>
+                <div class="options">
+                <label><input type="radio" name="given_blood_last_16_weeks" value="yes"> Yes</label>
+                <label><input type="radio" name="given_blood_last_16_weeks" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>4. Are you pregnant or breastfeeding?</label>
+                <div class="options">
+                <label><input type="radio" name="pregnant_breastfeeding" value="yes"> Yes</label>
+                <label><input type="radio" name="pregnant_breastfeeding" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>5. Do you have a chesty cough, sore throat, or active cold?</label>
+                <div class="options">
+                <label><input type="radio" name="cough_cold" value="yes"> Yes</label>
+                <label><input type="radio" name="cough_cold" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>6. Are you currently taking any medications?</label>
+                <div class="options">
+                <label><input type="radio" name="medications" value="yes"> Yes</label>
+                <label><input type="radio" name="medications" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>7. Have you taken any vaccinations recently?</label>
+                <div class="options">
+                <label><input type="radio" name="vaccine" value="yes"> Yes</label>
+                <label><input type="radio" name="vaccine" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>8. Do you have any allergies?</label>
+                <div class="options">
+                <label><input type="radio" name="allergy" value="yes"> Yes</label>
+                <label><input type="radio" name="allergy" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>9. Have you had any dental procedures in the past six months?</label>
+                <div class="options">
+                <label><input type="radio" name="dental" value="yes"> Yes</label>
+                <label><input type="radio" name="dental" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>10. Have you received a rabies vaccine in the last twelve months?</label>
+                <div class="options">
+                <label><input type="radio" name="rabies" value="yes"> Yes</label>
+                <label><input type="radio" name="rabies" value="no"> No</label>
+                </div>
+            </div>
+            <div class="question">
+                <label>11. Have you undergone any surgery in the past twelve months?</label>
+                <div class="options">
+                <label><input type="radio" name="surgery" value="yes"> Yes</label>
+                <label><input type="radio" name="surgery" value="no"> No</label>
+                </div>
+            </div>
+            <div class="query">
+                <label for="queries">Do you have any queries or information to share?</label>
+                <textarea id="queries" name="queries" rows="4" placeholder="Enter your queries or information here..."></textarea>
+            </div>
+
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.appspot.com",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+            measurementId: "G-YFQC09RXMF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Get form element
+        const form = document.getElementById('healthAssessmentForm');
+
+        // Handle form submission
+        form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    try {
+        // Get the appointment ID from URL parameters or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        let appointmentId = urlParams.get('appointmentId');
+
+        if (!appointmentId) {
+            // Check localStorage for saved appointment ID
+            const storedAppointment = localStorage.getItem('lastAppointment');
+            if (storedAppointment) {
+                const parsedData = JSON.parse(storedAppointment);
+                appointmentId = parsedData.appointmentId;
+            }
+        }
+
+        if (!appointmentId) {
+            throw new Error('No appointment ID found in URL or localStorage.');
+        }
+
+        // Collect all form data
+        const formData = {
+            donated_blood: form.donated_blood.value,
+            eaten_last_4_hours: form.eaten_last_4_hours.value,
+            given_blood_last_16_weeks: form.given_blood_last_16_weeks.value,
+            pregnant_breastfeeding: form.pregnant_breastfeeding.value,
+            cough_cold: form.cough_cold.value,
+            medications: form.medications.value,
+            vaccine: form.vaccine.value,
+            allergy: form.allergy.value,
+            dental: form.dental.value,
+            rabies: form.rabies.value,
+            surgery: form.surgery.value,
+            queries: form.queries.value
+        };
+
+        // Update the appointment document in Firestore
+        await updateDoc(doc(db, "appointments", appointmentId), {
+            "healthAssessment.assessmentData": formData,
+            "healthAssessment.completedAt": new Date().toISOString()
+        });
+
+        // Show success message and redirect
+        alert("Health assessment submitted successfully!");
+        window.location.href = "nex/nextpage.html";
+
+    } catch (error) {
+        console.error("Error submitting health assessment:", error);
+        alert("Error submitting form. Please try again.");
+    }
+});
+
+    </script>
+</body>
+</html>

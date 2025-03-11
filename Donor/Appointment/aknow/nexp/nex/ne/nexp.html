@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Declaration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #4CAF50;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .checkbox-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Declaration</h1>
+        <form id="declarationForm">
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="confirmation" required>
+                    I understand that:
+                </label>
+                <br><br>
+                (a) Blood donation is a totally voluntary act and no inducement or remuneration has been offered
+                <br><br>
+                (b) Donation of blood/components is a medical procedure and that by donating voluntarily. I accept
+                the risk associated with this procedure
+                <br><br>
+                (c) My donated blood, blood and plasma recovered from my donated blood may be sent for plasma
+                fractionation for preparation of plasma derived medicinal products, all of which may be used for
+                larger patient population and not just this blood bank.
+                <br><br>
+                (d) I would like to be informed about any abnormal test results done on my donated blood: Yes/No
+            </div>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+    
+        const firebaseConfig = {
+            apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+            authDomain: "blood-bank-25d02.firebaseapp.com",
+            projectId: "blood-bank-25d02",
+            storageBucket: "blood-bank-25d02.appspot.com",
+            messagingSenderId: "712477215126",
+            appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+            measurementId: "G-YFQC09RXMF"
+        };
+    
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+    
+        // Get form element
+        const declarationForm = document.getElementById('declarationForm');
+    
+        // Handle form submission
+        declarationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+    
+            const confirmed = document.getElementById('confirmation').checked;
+            if (confirmed) {
+                try {
+                    // Get appointment ID from URL or localStorage
+                    let urlParams = new URLSearchParams(window.location.search);
+                    let appointmentId = urlParams.get('appointmentId');
+    
+                    // If appointmentId is not in URL, retrieve it from localStorage
+                    if (!appointmentId) {
+                        const savedAppointment = JSON.parse(localStorage.getItem('lastAppointment'));
+                        appointmentId = savedAppointment ? savedAppointment.appointmentId : null;
+                    }
+    
+                    if (!appointmentId) {
+                        console.error("No appointment ID found");
+                        alert("Error: Appointment ID is missing.");
+                        return;
+                    }
+    
+                    // Update the appointment document in Firestore
+                    const appointmentRef = doc(db, "appointments", appointmentId);
+                    await updateDoc(appointmentRef, {
+                        "healthAssessment.Declaration": {
+                            confirmed: true,
+                            timestamp: new Date().toISOString()
+                        }
+                    });
+    
+                    // Show success message and redirect
+                    alert("Declaration submitted successfully!");
+                    window.location.href = "../../../../../../Donor/home/profile.html";
+    
+                } catch (error) {
+                    console.error("Error updating declaration:", error);
+                    alert("Error submitting declaration. Please try again.");
+                }
+            } else {
+                alert("Please confirm the declaration by checking the checkbox.");
+            }
+        });
+    
+        // Check authentication
+        onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                window.location.href = "..\..\..\..\..\..\Donor\login\donor_login.html";
+            }
+        });
+    </script>
+    
+</body>
+</html>

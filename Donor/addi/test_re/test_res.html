@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Medical Test Results</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .btn {
+            margin-top: 20px;
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Your Medical Test Results</h1>
+    <p><strong>Name:</strong> <span id="donorName"></span></p>
+    <p><strong>Email:</strong> <span id="donorEmail"></span></p>
+    <p><strong>Blood Group:</strong> <span id="donorBlood"></span></p>
+    <p><strong>Date of Donation:</strong> <span id="donationDate"></span></p>
+    <p><strong>Overall Status:</strong> <span id="overallStatus"></span></p>
+    <p><strong>Final Notes:</strong> <span id="finalNotes"></span></p>
+
+    <h3>Test Results</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Disease Name</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="testResults">
+        </tbody>
+    </table>
+
+    <button class="btn" onclick="downloadResults()">Download Results as PDF</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAbsNTGNXARhhM4lDOiXFJn2YYO87jolak",
+        authDomain: "blood-bank-25d02.firebaseapp.com",
+        projectId: "blood-bank-25d02",
+        storageBucket: "blood-bank-25d02.appspot.com",
+        messagingSenderId: "712477215126",
+        appId: "1:712477215126:web:98bf1195072c2fb67bb5b7",
+        measurementId: "G-YFQC09RXMF"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // Function to load test results
+    async function loadTestResults(userEmail) {
+        try {
+            // Query Firestore to find medical results
+            const q = query(collection(db, "medical_assessment_results"), where("email", "==", userEmail));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                alert("No medical test results found.");
+                return;
+            }
+
+            // Extract data from the result
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                document.getElementById("donorName").innerText = data.userName;
+                document.getElementById("donorEmail").innerText = data.email;
+                document.getElementById("donorBlood").innerText = data.bloodType;
+                document.getElementById("donationDate").innerText = data.timeSlot;
+                document.getElementById("overallStatus").innerText = data.overallStatus;
+                document.getElementById("finalNotes").innerText = data.finalNotes;
+
+                // Populate the table
+                const resultsTable = document.getElementById("testResults");
+                data.testResults.forEach(result => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${result.disease}</td>
+                        <td>${result.result}</td>
+                    `;
+                    resultsTable.appendChild(row);
+                });
+            });
+
+        } catch (error) {
+            console.error("Error loading medical test results:", error);
+            alert("Failed to load test results.");
+        }
+    }
+
+    // Check if the user is logged in
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            loadTestResults(user.email);
+        } else {
+            window.location.href = "../login/donor_login.html";
+        }
+    });
+
+    // Function to download PDF
+    window.downloadResults = function() {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF();
+
+        pdf.text("Blood Donation Test Results", 10, 10);
+        pdf.text("Name: " + document.getElementById("donorName").innerText, 10, 20);
+        pdf.text("Email: " + document.getElementById("donorEmail").innerText, 10, 30);
+        pdf.text("Blood Group: " + document.getElementById("donorBlood").innerText, 10, 40);
+        pdf.text("Donation Date: " + document.getElementById("donationDate").innerText, 10, 50);
+        pdf.text("Overall Status: " + document.getElementById("overallStatus").innerText, 10, 60);
+        pdf.text("Final Notes: " + document.getElementById("finalNotes").innerText, 10, 70);
+
+        let y = 80;
+        pdf.text("Test Results:", 10, y);
+        y += 10;
+
+        const rows = document.querySelectorAll("#testResults tr");
+        rows.forEach(row => {
+            const disease = row.cells[0].innerText;
+            const status = row.cells[1].innerText;
+            pdf.text(`${disease}: ${status}`, 10, y);
+            y += 10;
+        });
+
+        pdf.save('Test_Results.pdf');
+    }
+</script>
+</body>
+</html>
